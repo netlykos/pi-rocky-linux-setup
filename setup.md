@@ -6,7 +6,7 @@ This documents the commands executed after logging into a fresh rocky linux inst
 sudo rootfs-expand && \
 sudo dnf update -y && \
 sudo dnf install -y epel-release && \
-sudo dnf install -y fortune-mod mlocate bind-utils traceroute podman podman-compose podman-docker xauth gvim
+sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute podman podman-compose podman-docker xauth gvim
 ```
 
 ## Setup user
@@ -37,3 +37,6 @@ sudo hostnamectl set-hostname xxxxxxx
 
 - [https://dl.rockylinux.org/pub/sig/8/altarch/aarch64/images/README.txt](https://dl.rockylinux.org/pub/sig/8/altarch/aarch64/images/README.txt)
 - [https://alldrops.info/posts/linux-drops/2022-05-11_install-rocky-linux-on-raspberry-pi-for-remote-access/](https://alldrops.info/posts/linux-drops/2022-05-11_install-rocky-linux-on-raspberry-pi-for-remote-access/)
+- [https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9](https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9)
+- [https://bobcares.com/blog/fail2ban-unban-ip/](https://bobcares.com/blog/fail2ban-unban-ip/)
+
