@@ -22,6 +22,13 @@ sudo userdel -f -r rocky
 ssh-copy-id netlykos@xxx.xxx.xxx.xxx
 ```
 
+## Disable ssh password login
+```sh
+sudo vim /etc/ssh/sshd_config
+```
+
+Look for the string ``PasswordAuthentication`` and set the value to ``no``.
+
 ## Setup sudo for user
 ```sh
 sudo visudo
@@ -32,6 +39,11 @@ sudo visudo
 ```sh
 sudo hostnamectl set-hostname xxxxxxx
 ```
+
+## Setup fail2ban
+
+Follow the fail2ban guide
+- [https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9](https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9)
 
 ## Acknowledgements
 
