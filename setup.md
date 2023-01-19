@@ -43,13 +43,39 @@ sudo hostnamectl set-hostname xxxxxxx
 
 ## Setup fail2ban
 
-Follow the fail2ban guide
+Run the below to setup fail2ban on system
 
 ```sh
 sudo dnf install -y fail2ban
+cd /etc/fail2ban
+sudo cp jail.conf jail.local
+sudo vim jail.local
 ```
 
-- [https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9](https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9)
+In the file ``jail.local``, make the following changes:
+
+- Add the line ``enabled = true`` under the ``[sshd]`` section
+- Change the ``[default]`` backend from auto to systemd by changing the line ``backend = auto`` to ``backend = systemd``
+- Change the ``[default]`` section to include/set the following values as so:
+```
+bantime.increment = true
+bantime.rndtime = 86400
+bantime.multipliers = 1 5 30 60 300 720 1440 2880
+bantime  = 60m
+findtime  = 60m
+maxretry = 2
+```
+
+To enable and start the fail2ban service, execute the below:
+```sh
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+```
+
+To verify that the application started as expected (without any errors), execute the below:
+```sh
+sudo systemctl status fail2ban
+```
 
 ## Acknowledgements
 
