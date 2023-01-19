@@ -44,6 +44,11 @@ sudo hostnamectl set-hostname xxxxxxx
 ## Setup fail2ban
 
 Follow the fail2ban guide
+
+```sh
+sudo dnf install -y fail2ban
+```
+
 - [https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9](https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9)
 
 ## Acknowledgements
