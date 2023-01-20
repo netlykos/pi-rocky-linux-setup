@@ -7,7 +7,7 @@ sudo rootfs-expand; \
 sudo dnf update -y && \
 sudo dnf install -y epel-release && \
 sudo /usr/bin/crb enable \
-sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute podman podman-compose podman-docker xauth gvim
+sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute rsync podman podman-compose podman-docker xauth gvim
 ```
 
 ## Setup user
