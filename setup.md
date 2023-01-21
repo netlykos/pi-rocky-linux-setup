@@ -84,7 +84,11 @@ By default selinux is enforced, this can cause issues when using podman and/or h
 ```sh
 sudo vim /etc/sysconfig/selinux
 ```
-Change ``SELINUX=enforcing`` to ``SELINUX=permissive``.
+Change ``SELINUX=enforcing`` to ``SELINUX=permissive``
+
+```sh
+reboot
+```
 
 ## Acknowledgements
 
