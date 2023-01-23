@@ -7,7 +7,7 @@ sudo rootfs-expand; \
 sudo dnf update -y && \
 sudo dnf install -y epel-release && \
 sudo /usr/bin/crb enable \
-sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute rsync podman podman-compose podman-docker xauth gvim
+sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute rsync podman podman-compose podman-docker xauth gvim rsync
 ```
 
 ## Setup user
@@ -89,6 +89,88 @@ Change ``SELINUX=enforcing`` to ``SELINUX=permissive``
 ```sh
 reboot
 ```
+
+## Host registration with ddclient
+
+Use the below to setup ddclient as systemd service to manage host registration with [http://pairdomains.com](http://pairdomains.com). Install and configure ddclient on the local machine:
+
+```sh
+sudo dnf install -y ddclient
+sudo vim /etc/ddclient.conf /usr/lib/systemd/system/ddclient.service
+```
+
+Edit the file ``/etc/ddclient.conf`` and replace the file content with the below:
+
+```
+# check every 300 seconds
+daemon=300
+# log update msgs to syslog
+syslog=yes
+# record PID in file.
+pid=/var/run/ddclient/ddclient.pid
+# enable the ssl library
+ssl=yes
+
+protocol=dyndns2
+use=web,web=https://myip.pairdomains.com/
+web-skip='Current IP Address: '
+server=dynamic.pairdomains.com, \
+login=pairdomains,              \
+password=XXXXXXXX               \
+XXX.XXX.XXX
+```
+
+Edit the file ``/usr/lib/systemd/system/ddclient.service`` and replace the file content with the below:
+ ```
+[Unit]
+Description=A Perl Client Used To Update Dynamic DNS
+After=syslog.target network-online.target nss-lookup.target
+
+[Service]
+User=ddclient
+Group=ddclient
+Type=forking
+PIDFile=/run/ddclient/ddclient.pid
+EnvironmentFile=-/etc/sysconfig/ddclient
+ExecStartPre=/bin/touch /var/cache/ddclient/ddclient.cache
+ExecStart=/usr/sbin/ddclient -file /etc/ddclient.conf -verbose $DDCLIENT_OPTIONS
+ExecStop=/usr/bin/pkill -SIGKILL -P /var/run/ddclient/ddclient.pid
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start the ddclient service
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable ddclient
+sudo systemctl start ddclient
+sudo systemctl status ddclient
+sudo journalctl -fu ddclient.service 
+```
+
+## Optional extra's
+
+Additional components to add to the PI that allow the Raspeberry PI to act as:
+- A wireguard server
+- A WiFi hotspot for a VPN connection
+
+### Wireguard server
+
+TBD - add details to setup a wireguard server
+
+### WiFi hotspot for VPN connection
+
+Use the below to turn the Raspberry PI into a WiFi router serving up VPN connection:
+
+```sh
+sudo dnf install elrepo-release epel-release
+sudo dnf install -y wireguard-tools dnsmasq hostapd systemd-resolved
+
+```
+
+
+###
 
 ## Acknowledgements
 
