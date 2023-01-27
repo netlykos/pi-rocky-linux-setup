@@ -38,7 +38,7 @@ sudo visudo
 ## Set hostname
 
 ```sh
-sudo hostnamectl set-hostname xxxxxxx
+sudo hostnamectl set-hostname xxx.xxx.xxx
 ```
 
 ## Setup fail2ban
@@ -158,6 +158,100 @@ Additional components to add to the PI that allow the Raspeberry PI to act as:
 ### Wireguard server
 
 TBD - add details to setup a wireguard server
+
+
+### Apache httpd server
+
+Install apache, mod_ssl and certbot for SSL certificate.
+```sh
+sudo dnf install -y httpd mod_ssl certbot python3-certbot-apache
+```
+
+Create a virtual host entry for the domain that will be hosted on the server using the below content:
+```domain.conf
+<VirtualHost *:80>
+  ServerName xxx.xxx.xxx
+  DocumentRoot /var/www/html
+  ServerAlias xxx.xxx.xxx
+  ErrorLog /var/www/error.log
+  CustomLog /var/www/requests.log combined
+</VirtualHost>
+```
+
+After the service is running, change the default index.html file. After the welcome page has been modified,  modify the firewall rules to accept requests on httpd ports (80, 443).
+```sh
+sudo systemctl enable httpd
+sudo systemctl start httpd
+sudo echo "<html><head><title>It's alive...</title></head><body>It's alive...</body></html>" > /var/www/html/index.html
+sudo firewall-cmd --add-service=http --permanent
+sudo firewall-cmd --add-port=80/tcp --permanent
+sudo firewall-cmd --add-port=443/tcp --permanent
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-all
+```
+
+Configure certbot:
+```sh
+sudo certbot -v --apache -d xxx.xxx.xxx
+```
+
+Create a certbot renewal timer based on documentation found [https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html](https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html).
+
+Create the file ``/etc/systemd/system/certbot-renewal.service`` with the content below:
+
+```certbot-renewal.service
+[Unit]
+Description=Certbot Renewal
+
+[Service]
+ExecStart=/usr/bin/certbot renew --post-hook "systemctl restart httpd"
+```
+
+The above service executes the certbot renew command and restarts the httpd service after the renewal process has completed.
+
+Timer unit files contain information about a timer controlled and supervised by systemd. By default, a service with the same name as the timer is activated.
+
+Create a timer unit file ``/etc/systemd/system/certbot-renewal.timer`` in the same directory as the service file. The configuration below will activate the service weekly, and 300 seconds after boot-up.
+```certbot-renewal.timer
+[Unit]
+Description=Timer for Certbot Renewal
+
+[Timer]
+OnBootSec=300
+OnUnitActiveSec=1w
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Start and enable the timer:
+
+```sh
+sudo systemctl start certbot-renewal.timer
+sudo systemctl enable certbot-renewal.timer
+```
+
+To view the status information for the timer:
+
+```sh
+systemctl status certbot-renewal.timer
+```
+
+To view the journal entries for the timer
+```sh
+journalctl -u certbot-renewal.service
+```
+
+Change fail2ban configuration to allow for checking httpd logs
+```sh
+sudo vim /etc/fail2ban/jail.local
+```
+
+Look for expression ``^[httpd`` and add the line ``enabled = true`` to the sections found. After all the changes are made, reload the fail2ban service.
+
+```sh
+sudo 
+```
 
 ### WiFi hotspot for VPN connection
 
