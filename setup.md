@@ -1,6 +1,6 @@
 # Setup commands for raspberry pi rocky linux
 
-This documents the commands executed after logging into a fresh rocky linux install. Download the Rocky Linux Raspberry PI (aarch64) image from (https://rockylinux.org/alternative-images/)[https://rockylinux.org/alternative-images/]. After flashing the image to a SD card and plugging it into the PI, the below commands can be used to configure the PI as necessary.
+This documents the commands executed after logging into a fresh rocky linux install. Download the Rocky Linux Raspberry PI (aarch64) image from [https://rockylinux.org/alternative-images/](https://rockylinux.org/alternative-images/). After flashing the image to a SD card and plugging it into the PI, the below commands can be used to configure the PI as necessary.
 ## Software system
 ```sh
 sudo rootfs-expand; \
