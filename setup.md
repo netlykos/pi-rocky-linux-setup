@@ -157,8 +157,49 @@ Additional components to add to the PI that allow the Raspeberry PI to act as:
 
 ### Wireguard server
 
-TBD - add details to setup a wireguard server
+Enable the wireguard module
 
+```sh
+sudo modprobe wireguard
+lsmod | grep wireguard
+```
+
+This should output something similar to:
+```sh
+$ lsmod | grep wireguard
+wireguard              73728  0
+libchacha20poly1305    16384  1 wireguard
+ip6_udp_tunnel         16384  1 wireguard
+udp_tunnel             28672  1 wireguard
+libcurve25519_generic    40960  1 wireguard
+ipv6                  569344  43 nf_reject_ipv6,nft_fib_ipv6,wireguard
+```
+
+Enable loading of the wireguard module at boot time by adding it to the kernel module file:
+```sh
+echo wireguard | sudo tee -a /etc/modules-load.d/wireguard.conf
+```
+
+Install the wireguard tools to manage wireguard:
+
+```sh
+sudo dnf install -y wireguard-tools
+```
+
+Generating Server Key Pair
+
+Run the 'wg genkey' command to generate the server private key '/etc/wireguard/server.key'. Then, change the default permission to '0400' to disable write and execute from others and groups. After that, run the command to generate the public key for the wireguard server '/etc/wireguard/server.pub'. The wireguard public key is derived from the wireguard private key '/etc/wireguard/server.key'.
+
+```sh
+wg genkey | sudo tee /etc/wireguard/server.key
+sudo chmod 0400 /etc/wireguard/server.key
+sudo cat /etc/wireguard/server.key | wg pubkey | sudo tee /etc/wireguard/server.pub
+```
+
+Verify both the wireguard server's public and private keys.
+```sh
+more /etc/wireguard/server.key /etc/wireguard/server.pub
+```
 
 ### Apache httpd server
 
@@ -273,3 +314,4 @@ sudo dnf install -y wireguard-tools dnsmasq hostapd systemd-resolved
 - [https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9](https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-rocky-linux-9)
 - [https://bobcares.com/blog/fail2ban-unban-ip/](https://bobcares.com/blog/fail2ban-unban-ip/)
 - [https://www.how2shout.com/linux/how-to-disable-or-turn-off-selinux-on-rocky-linux-8/](https://www.how2shout.com/linux/how-to-disable-or-turn-off-selinux-on-rocky-linux-8/)
+- [https://www.howtoforge.com/how-to-install-wireguard-vpn-on-rocky-linux-9/](https://www.howtoforge.com/how-to-install-wireguard-vpn-on-rocky-linux-9/)
