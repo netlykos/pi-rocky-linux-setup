@@ -384,3 +384,6 @@ sudo dnf install -y wireguard-tools dnsmasq hostapd systemd-resolved
 - [https://bobcares.com/blog/fail2ban-unban-ip/](https://bobcares.com/blog/fail2ban-unban-ip/)
 - [https://www.how2shout.com/linux/how-to-disable-or-turn-off-selinux-on-rocky-linux-8/](https://www.how2shout.com/linux/how-to-disable-or-turn-off-selinux-on-rocky-linux-8/)
 - [https://www.howtoforge.com/how-to-install-wireguard-vpn-on-rocky-linux-9/](https://www.howtoforge.com/how-to-install-wireguard-vpn-on-rocky-linux-9/)
+- [https://irvingduran.com/2021/04/how-to-configure-macos-timemachine-and-ubuntu-20-04/](https://irvingduran.com/2021/04/how-to-configure-macos-timemachine-and-ubuntu-20-04/)
+- [https://dev.to/ea2305/time-machine-backup-with-your-home-server-1lj6](https://dev.to/ea2305/time-machine-backup-with-your-home-server-1lj6)
+- [https://www.tecmint.com/install-samba-rhel-rocky-linux-and-almalinux/](https://www.tecmint.com/install-samba-rhel-rocky-linux-and-almalinux/)
