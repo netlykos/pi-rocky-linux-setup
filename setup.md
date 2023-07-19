@@ -7,7 +7,7 @@ sudo rootfs-expand; \
 sudo dnf update -y && \
 sudo dnf install -y epel-release && \
 sudo /usr/bin/crb enable \
-sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute rsync podman podman-compose podman-docker xauth gvim rsync bzip2 bunzip2
+sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute rsync podman podman-compose podman-docker xauth gvim rsync bzip2 bunzip2 netcat
 ```
 
 ## Setup user
@@ -292,6 +292,75 @@ Look for expression ``^[httpd`` and add the line ``enabled = true`` to the secti
 
 ```sh
 sudo 
+```
+
+### Setup TimeMachine backup
+
+Install samba
+
+```sh
+sudo dnf install -y samba
+```
+
+Create the `timemachine` user, ensuring it cannot login but has samba credentials
+
+```sh
+sudo adduser timemachine -MN -s /sbin/nologin -u 50000 -g nobody
+sudo smbpasswd -a timemachine
+sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.$(date +%Y-%m-%d)
+sudo mkdir -p /mount/xxxx/backups/timemachine
+sudo chown timemachine:nobody /mounts/xxxx/backups/timemachine
+```
+
+Update the samba configuration file as below (hint: copy/paste and then make the necessary changes)
+
+```smb.conf
+[global]
+workgroup = hostname
+min protocol = SMB2
+
+# security
+security = user
+passdb backend = tdbsam
+map to guest = Bad User
+
+# mac Support
+spotlight = yes
+vfs objects = acl_xattr catia fruit streams_xattr
+fruit:aapl = yes
+fruit:time machine = yes
+
+#NetShares 
+
+[volumes]
+comment = Time Machine
+path = /mounts/xxxx/backups/timemachine
+valid users = timemachine
+browsable = yes
+writable = yes
+read only = no
+create mask = 0644
+directory mask = 0755
+```
+
+Test the configration changes are okay.
+
+```sh
+sudo testparm
+```
+
+Start and enable the samba service, then verify they are working as expected and add the firewall rules for samba.
+
+```sh
+sudo systemctl start smb
+sudo systemctl enable smb
+sudo systemctl start nmb
+sudo systemctl enable nmb
+sudo systemctl status smb
+sudo systemctl status nmb
+sudo firewall-cmd --permanent --add-service=samba
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-services
 ```
 
 ### WiFi hotspot for VPN connection
