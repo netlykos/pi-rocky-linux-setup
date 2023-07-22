@@ -363,6 +363,13 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-services
 ```
 
+### Podman setup (for homebridge)
+
+```sh
+sudo loginctl enable-linger $(id -un)
+```
+
+
 ### WiFi hotspot for VPN connection
 
 Use the below to turn the Raspberry PI into a WiFi router serving up VPN connection:
