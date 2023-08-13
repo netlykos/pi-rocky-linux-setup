@@ -401,7 +401,7 @@ Homebridge v1.6.1 (HAP v0.11.1) (Homebridge XXXX) is running on port XXXXX.
 
 #### Homebridge: Simplisafe setup
 
-Connect to the homebridge UI via a browser (It might be best to use FireFox and/or Chrome), or if using Safari make sure that the Developer Console is enabled and http logs are being retained. Use the plugin [https://github.com/homebridge-simplisafe3/homebridge-simplisafe3](homebridge-simplisafe 3)
+Connect to the homebridge UI via a browser (It might be best to use FireFox and/or Chrome), or if using Safari make sure that the Developer Console is enabled and http logs are being retained. Use the plugin [homebridge-simplisafe 3](https://github.com/homebridge-simplisafe3/homebridge-simplisafe3)
 
 ### WiFi hotspot for VPN connection
 
