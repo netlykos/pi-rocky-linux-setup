@@ -369,6 +369,39 @@ sudo firewall-cmd --list-services
 sudo loginctl enable-linger $(id -un)
 ```
 
+### Homebridge setup
+
+Homebridge can be setup to use podman using the following steps.
+
+1. Create a shell script to launch the container
+```sh
+#!/bin/sh
+
+docker run \
+  -d \
+  --net=host \
+  --name=homebridge \
+  -v /mounts/sda1/containers/volumes/homebridge:/homebridge \
+  homebridge/homebridge:latest
+```
+
+2. Update the firewall rules to allow connections to the homebridge container from an external system.
+```sh
+sudo firewall-cmd --add-port=8581/tcp --permanent && \
+sudo firewall-cmd --add-port=51022/tcp --permanent && \
+sudo firewall-cmd --reload && \
+sudo firewall-cmd --list-all
+```
+*Note*: Both the http port to manage homebridge and the port that HomeKit needs to communicate with homebridge need to be added to the firewall rules. The HomeKit communication port might be different to the one mentioned above, check the logs as the application is starting up for the port.
+```logs
+Homebridge v1.6.1 (HAP v0.11.1) (Homebridge XXXX) is running on port XXXXX.
+```
+
+3. Connect to the homebridge UI and setup the admin account.
+
+#### Homebridge: Simplisafe setup
+
+Connect to the homebridge UI via a browser (It might be best to use FireFox and/or Chrome), or if using Safari make sure that the Developer Console is enabled and http logs are being retained. Use the plugin [https://github.com/homebridge-simplisafe3/homebridge-simplisafe3](homebridge-simplisafe 3)
 
 ### WiFi hotspot for VPN connection
 
