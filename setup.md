@@ -413,6 +413,41 @@ sudo dnf install -y wireguard-tools dnsmasq hostapd systemd-resolved
 
 ```
 
+### Scrypted setup
+
+Scrypted can be setup to use podman using the following steps.
+
+1. Create a shell script to launch the container
+```sh
+#!/bin/sh
+
+podman run \
+  -d \
+  --name scrypted \
+  --network host \
+  --restart unless-stopped \
+  -v /mounts/sda1/containers/volumes/scrypted:/server/volume \
+  koush/scrypted:latest
+```
+
+2. Update the firewall rules to allow connections to the scrypted container from an external system.
+```sh
+sudo firewall-cmd --add-port=11080/tcp --permanent && \
+sudo firewall-cmd --reload && \
+sudo firewall-cmd --list-all
+```
+
+3. Connect to the scrypted UI and setup the admin account.
+
+### WiFi hotspot for VPN connection
+
+Use the below to turn the Raspberry PI into a WiFi router serving up VPN connection:
+
+```sh
+sudo dnf install elrepo-release epel-release
+sudo dnf install -y wireguard-tools dnsmasq hostapd systemd-resolved
+
+```
 
 ###
 
