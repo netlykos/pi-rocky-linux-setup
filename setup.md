@@ -9,7 +9,7 @@ sudo dnf install -y epel-release && \
 sudo /usr/bin/crb enable \
 sudo dnf install -y fortune-mod mlocate net-tools bind-utils \
   traceroute rsync podman podman-compose podman-docker xauth \
-  gvim rsync bzip2 bunzip2 netcat
+  gvim rsync bzip2 bunzip2 netcat p7zip
 ```
 
 ## Setup user
