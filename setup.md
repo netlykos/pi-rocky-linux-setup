@@ -7,14 +7,16 @@ sudo rootfs-expand; \
 sudo dnf update -y && \
 sudo dnf install -y epel-release && \
 sudo /usr/bin/crb enable \
-sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute rsync podman podman-compose podman-docker xauth gvim rsync bzip2 bunzip2 netcat
+sudo dnf install -y fortune-mod mlocate net-tools bind-utils \
+  traceroute rsync podman podman-compose podman-docker xauth \
+  gvim rsync bzip2 bunzip2 netcat
 ```
 
 ## Setup user
 ```sh
-sudo useradd -u 10000 -g 100 -G wheel -c "Adi B q=)" -s /bin/bash netlykos; \
-sudo passwd netlykos; \
-sudo su - netlykos; \
+sudo useradd -u 10000 -g 100 -G wheel -c "Adi B q=)" -s /bin/bash netlykos
+sudo passwd netlykos
+sudo su - netlykos
 sudo userdel -f -r rocky
 ```
 
