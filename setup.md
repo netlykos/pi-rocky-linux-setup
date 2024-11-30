@@ -12,9 +12,9 @@ sudo dnf install -y fortune-mod mlocate net-tools bind-utils traceroute rsync po
 
 ## Setup user
 ```sh
-sudo useradd -u 10000 -g 100 -G wheel -c "Adi B q=)" -s /bin/bash netlykos
-sudo passwd netlykos
-sudo su - netlykos
+sudo useradd -u 10000 -g 100 -G wheel -c "Adi B q=)" -s /bin/bash netlykos; \
+sudo passwd netlykos; \
+sudo su - netlykos; \
 sudo userdel -f -r rocky
 ```
 
