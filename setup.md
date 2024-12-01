@@ -1,18 +1,46 @@
-# Setup commands for raspberry pi rocky linux
+# Raspberry PI RockyLinux 9 Setup
+
+<!-- TOC -->
+
+- [Raspberry PI RockyLinux 9 Setup](#raspberry-pi-rockylinux-9-setup)
+  - [Software system](#software-system)
+    - [Setup user](#setup-user)
+    - [Copy ssh keys](#copy-ssh-keys)
+    - [Disable ssh password login](#disable-ssh-password-login)
+    - [Setup sudo for user](#setup-sudo-for-user)
+    - [Set hostname](#set-hostname)
+    - [Setup fail2ban](#setup-fail2ban)
+    - [Change selinux](#change-selinux)
+    - [Podman setup](#podman-setup)
+    - [Host registration with ddclient](#host-registration-with-ddclient)
+  - [Software setup](#software-setup)
+    - [Setup Wireguard Server using podman](#setup-wireguard-server-using-podman)
+    - [Apache httpd server](#apache-httpd-server)
+    - [Setup TimeMachine backup](#setup-timemachine-backup)
+    - [Homebridge setup](#homebridge-setup)
+      - [Homebridge: Simplisafe setup](#homebridge-simplisafe-setup)
+    - [WiFi hotspot for VPN connection](#wifi-hotspot-for-vpn-connection)
+    - [Scrypted setup](#scrypted-setup)
+  - [Acknowledgements](#acknowledgements)
+
+<!-- /TOC -->
 
 This documents the commands executed after logging into a fresh rocky linux install. Download the Rocky Linux Raspberry PI (aarch64) image from [https://rockylinux.org/alternative-images/](https://rockylinux.org/alternative-images/). After flashing the image to a SD card and plugging it into the PI, the below commands can be used to configure the PI as necessary.
+
 ## Software system
+
 ```sh
 sudo rootfs-expand; \
 sudo dnf update -y && \
 sudo dnf install -y epel-release && \
-sudo /usr/bin/crb enable \
+sudo /usr/bin/crb enable && \
 sudo dnf install -y fortune-mod mlocate net-tools bind-utils \
   traceroute rsync podman podman-compose podman-docker xauth \
   gvim rsync bzip2 bunzip2 netcat p7zip
 ```
 
-## Setup user
+### Setup user
+
 ```sh
 sudo useradd -u 10000 -g 100 -G wheel -c "Adi B q=)" -s /bin/bash netlykos
 sudo passwd netlykos
@@ -21,29 +49,32 @@ sudo userdel -f -r rocky
 ```
 
 ### Copy ssh keys
+
 ```sh
 ssh-copy-id netlykos@xxx.xxx.xxx.xxx
 ```
 
-## Disable ssh password login
+### Disable ssh password login
+
 ```sh
 sudo vim /etc/ssh/sshd_config
 ```
 
 Look for the string ``PasswordAuthentication`` and set the value to ``no``.
 
-## Setup sudo for user
+### Setup sudo for user
+
 ```sh
 sudo visudo
 ```
 
-## Set hostname
+### Set hostname
 
 ```sh
 sudo hostnamectl set-hostname xxx.xxx.xxx
 ```
 
-## Setup fail2ban
+### Setup fail2ban
 
 Run the below to setup fail2ban on system
 
@@ -59,7 +90,8 @@ In the file ``jail.local``, make the following changes:
 - Add the line ``enabled = true`` under the ``[sshd]`` section
 - Change the ``[default]`` backend from auto to systemd by changing the line ``backend = auto`` to ``backend = systemd``
 - Change the ``[default]`` section to include/set the following values as so:
-```
+
+```text
 bantime.increment = true
 bantime.rndtime = 86400
 bantime.multipliers = 1 5 30 60 300 720 1440 2880
@@ -69,30 +101,41 @@ maxretry = 2
 ```
 
 To enable and start the fail2ban service, execute the below:
+
 ```sh
 sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
 ```
 
 To verify that the application started as expected (without any errors), execute the below:
+
 ```sh
 sudo systemctl status fail2ban
 ```
 
-## Change selinux
+### Change selinux
 
-By default selinux is enforced, this can cause issues when using podman and/or having to play around with namespaces when using the -v option. SELinux can be changed to permissive mode where warnings are emitted instead of failures. 
+By default selinux is enforced, this can cause issues when using podman and/or having to play around with namespaces when using the -v option. SELinux can be changed to permissive mode where warnings are emitted instead of failures.
 
 ```sh
 sudo vim /etc/sysconfig/selinux
 ```
+
 Change ``SELINUX=enforcing`` to ``SELINUX=permissive``
 
 ```sh
 reboot
 ```
 
-## Host registration with ddclient
+### Podman setup
+
+Enable linger for podman processes.
+
+```sh
+sudo loginctl enable-linger $(id -un)
+```
+
+### Host registration with ddclient
 
 Use the below to setup ddclient as systemd service to manage host registration with [http://pairdomains.com](http://pairdomains.com). Install and configure ddclient on the local machine:
 
@@ -103,7 +146,7 @@ sudo vim /etc/ddclient.conf /usr/lib/systemd/system/ddclient.service
 
 Edit the file ``/etc/ddclient.conf`` and replace the file content with the below:
 
-```
+```text
 # check every 300 seconds
 daemon=300
 # log update msgs to syslog
@@ -123,7 +166,8 @@ XXX.XXX.XXX
 ```
 
 Edit the file ``/usr/lib/systemd/system/ddclient.service`` and replace the file content with the below:
- ```
+
+ ```text
 [Unit]
 Description=A Perl Client Used To Update Dynamic DNS
 After=syslog.target network-online.target nss-lookup.target
@@ -143,6 +187,7 @@ WantedBy=multi-user.target
 ```
 
 Enable and start the ddclient service
+
 ```sh
 sudo systemctl daemon-reload
 sudo systemctl enable ddclient
@@ -151,66 +196,94 @@ sudo systemctl status ddclient
 sudo journalctl -fu ddclient.service 
 ```
 
-## Optional extra's
+## Software setup
 
-Additional components to add to the PI that allow the Raspeberry PI to act as:
-- A wireguard server
-- A WiFi hotspot for a VPN connection
+### Setup Wireguard Server using podman
 
-### Wireguard server
+Some of the details to setup wireguard were copied from [https://www.procustodibus.com/blog/2022/10/wireguard-in-podman/](https://www.procustodibus.com/blog/2022/10/wireguard-in-podman/). However the [linuxserver.io](https://github.com/linuxserver/docker-wireguard) wireguard container is being used.
 
-Enable the wireguard module
+Setup modules to be loaded in ``/etc/modules-load.d/wireguard.conf``.
 
-```sh
-sudo modprobe wireguard
-lsmod | grep wireguard
+```/etc/modules-load.d/wireguard.conf
+# /etc/modules-load.d/wireguard.conf
+# WireGuard module
+wireguard
+# iptables/nftables modules for basic DNAT/SNAT and masquerading
+nft_chain_nat
+nft_compat
+xt_nat
+iptable_nat
+xt_MASQUERADE
+# nftables modules for wg-quick default route
+nft_ct
+nft_fib_inet
+iptable_mangle
+iptable_raw
+xt_addrtype
+xt_comment
+xt_connmark
+xt_mark
 ```
 
-This should output something similar to:
+Reload modules and check the logs for any errors.
+
 ```sh
-$ lsmod | grep wireguard
-wireguard              73728  0
-libchacha20poly1305    16384  1 wireguard
-ip6_udp_tunnel         16384  1 wireguard
-udp_tunnel             28672  1 wireguard
-libcurve25519_generic    40960  1 wireguard
-ipv6                  569344  43 nf_reject_ipv6,nft_fib_ipv6,wireguard
+sudo systemctl restart systemd-modules-load
+journalctl -u systemd-modules-load
 ```
 
-Enable loading of the wireguard module at boot time by adding it to the kernel module file:
+Open udp port 51820 for external connections (required as run as non-root).
+
 ```sh
-echo wireguard | sudo tee -a /etc/modules-load.d/wireguard.conf
+sudo firewall-cmd --add-port=51820/udp --permanent && sudo firewall-cmd --reload && sudo firewall-cmd --list-all 
 ```
 
-Install the wireguard tools to manage wireguard:
+Create a directory to store the configuration files.
 
 ```sh
-sudo dnf install -y wireguard-tools
+mkdir -p ~/code/containers/wireguard/volume/config
 ```
 
-Generating Server Key Pair
-
-Run the 'wg genkey' command to generate the server private key '/etc/wireguard/server.key'. Then, change the default permission to '0400' to disable write and execute from others and groups. After that, run the command to generate the public key for the wireguard server '/etc/wireguard/server.pub'. The wireguard public key is derived from the wireguard private key '/etc/wireguard/server.key'.
+Create a ``launch.sh`` script in the directory ``~/code/containers/wireguard`` with the below content.
 
 ```sh
-wg genkey | sudo tee /etc/wireguard/server.key
-sudo chmod 0400 /etc/wireguard/server.key
-sudo cat /etc/wireguard/server.key | wg pubkey | sudo tee /etc/wireguard/server.pub
+#!/bin/env bash
+
+podman run -d \
+    --cap-add NET_ADMIN \
+    --cap-add NET_RAW \
+    --cap-add SYS_MODULE \
+    --name wg-server \
+    --publish 51820:51820/udp \
+    --rm \
+    --sysctl net.ipv4.conf.all.forwarding=1 \
+    --sysctl net.ipv4.conf.all.src_valid_mark=1 \
+    -e TZ=Etc/UTC \
+    -e SERVERURL=routecvt02.netlykos.org \
+    -e SERVERPORT=51820 \
+    -e PEERS=10 \
+    -e PEERDNS=1.0.0.1,8.8.8.8 \
+    -e LOG_CONFS=true \
+    --volume /home/netlykos/code/containers/wireguard/volume/config:/config:Z \
+    lscr.io/linuxserver/wireguard:latest
 ```
 
-Verify both the wireguard server's public and private keys.
+To verify that the container started without any issues and to confirm after connecting, tail the logs.
+
 ```sh
-more /etc/wireguard/server.key /etc/wireguard/server.pub
+podman logs -f wg-server
 ```
 
 ### Apache httpd server
 
 Install apache, mod_ssl and certbot for SSL certificate.
+
 ```sh
 sudo dnf install -y httpd mod_ssl certbot python3-certbot-apache
 ```
 
 Create a virtual host entry for the domain that will be hosted on the server using the below content:
+
 ```domain.conf
 <VirtualHost *:80>
   ServerName xxx.xxx.xxx
@@ -222,6 +295,7 @@ Create a virtual host entry for the domain that will be hosted on the server usi
 ```
 
 After the service is running, change the default index.html file. After the welcome page has been modified,  modify the firewall rules to accept requests on httpd ports (80, 443).
+
 ```sh
 sudo systemctl enable httpd
 sudo systemctl start httpd
@@ -234,6 +308,7 @@ sudo firewall-cmd --list-all
 ```
 
 Configure certbot:
+
 ```sh
 sudo certbot -v --apache -d xxx.xxx.xxx
 ```
@@ -255,6 +330,7 @@ The above service executes the certbot renew command and restarts the httpd serv
 Timer unit files contain information about a timer controlled and supervised by systemd. By default, a service with the same name as the timer is activated.
 
 Create a timer unit file ``/etc/systemd/system/certbot-renewal.timer`` in the same directory as the service file. The configuration below will activate the service weekly, and 300 seconds after boot-up.
+
 ```certbot-renewal.timer
 [Unit]
 Description=Timer for Certbot Renewal
@@ -281,20 +357,19 @@ systemctl status certbot-renewal.timer
 ```
 
 To view the journal entries for the timer
+
 ```sh
 journalctl -u certbot-renewal.service
 ```
 
 Change fail2ban configuration to allow for checking httpd logs
+
 ```sh
 sudo vim /etc/fail2ban/jail.local
 ```
 
 Look for expression ``^[httpd`` and add the line ``enabled = true`` to the sections found. After all the changes are made, reload the fail2ban service.
 
-```sh
-sudo 
-```
 
 ### Setup TimeMachine backup
 
@@ -365,17 +440,12 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-services
 ```
 
-### Podman setup (for homebridge)
-
-```sh
-sudo loginctl enable-linger $(id -un)
-```
-
 ### Homebridge setup
 
 Homebridge can be setup to use podman using the following steps.
 
 1. Create a shell script to launch the container
+
 ```sh
 #!/bin/sh
 
@@ -388,13 +458,16 @@ docker run \
 ```
 
 2. Update the firewall rules to allow connections to the homebridge container from an external system.
+
 ```sh
 sudo firewall-cmd --add-port=8581/tcp --permanent && \
 sudo firewall-cmd --add-port=51022/tcp --permanent && \
 sudo firewall-cmd --reload && \
 sudo firewall-cmd --list-all
 ```
+
 *Note*: Both the http port to manage homebridge and the port that HomeKit needs to communicate with homebridge need to be added to the firewall rules. The HomeKit communication port might be different to the one mentioned above, check the logs as the application is starting up for the port.
+
 ```logs
 Homebridge v1.6.1 (HAP v0.11.1) (Homebridge XXXX) is running on port XXXXX.
 ```
@@ -420,6 +493,7 @@ sudo dnf install -y wireguard-tools dnsmasq hostapd systemd-resolved
 Scrypted can be setup to use podman using the following steps.
 
 1. Create a shell script to launch the container
+
 ```sh
 #!/bin/sh
 
@@ -432,26 +506,15 @@ podman run \
   koush/scrypted:latest
 ```
 
-2. Update the firewall rules to allow connections to the scrypted container from an external system.
+1. Update the firewall rules to allow connections to the scrypted container from an external system.
+
 ```sh
 sudo firewall-cmd --add-port=11080/tcp --permanent && \
 sudo firewall-cmd --reload && \
 sudo firewall-cmd --list-all
 ```
 
-3. Connect to the scrypted UI and setup the admin account.
-
-### WiFi hotspot for VPN connection
-
-Use the below to turn the Raspberry PI into a WiFi router serving up VPN connection:
-
-```sh
-sudo dnf install elrepo-release epel-release
-sudo dnf install -y wireguard-tools dnsmasq hostapd systemd-resolved
-
-```
-
-###
+1. Connect to the scrypted UI and setup the admin account.
 
 ## Acknowledgements
 
