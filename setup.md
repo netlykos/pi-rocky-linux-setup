@@ -3,7 +3,7 @@
 <!-- TOC -->
 
 - [Raspberry PI RockyLinux 9 Setup](#raspberry-pi-rockylinux-9-setup)
-  - [Software system](#software-system)
+  - [System setup](#system-setup)
     - [Setup user](#setup-user)
     - [Copy ssh keys](#copy-ssh-keys)
     - [Disable ssh password login](#disable-ssh-password-login)
@@ -14,8 +14,10 @@
     - [Podman setup](#podman-setup)
     - [Host registration with ddclient](#host-registration-with-ddclient)
   - [Software setup](#software-setup)
-    - [Setup Wireguard Server using podman](#setup-wireguard-server-using-podman)
     - [Apache httpd server](#apache-httpd-server)
+      - [Certbot setup](#certbot-setup)
+      - [Configure fail2ban](#configure-fail2ban)
+    - [Setup Wireguard Server using podman](#setup-wireguard-server-using-podman)
     - [Setup TimeMachine backup](#setup-timemachine-backup)
     - [Homebridge setup](#homebridge-setup)
       - [Homebridge: Simplisafe setup](#homebridge-simplisafe-setup)
@@ -25,9 +27,7 @@
 
 <!-- /TOC -->
 
-This documents the commands executed after logging into a fresh rocky linux install. Download the Rocky Linux Raspberry PI (aarch64) image from [https://rockylinux.org/alternative-images/](https://rockylinux.org/alternative-images/). After flashing the image to a SD card and plugging it into the PI, the below commands can be used to configure the PI as necessary.
-
-## Software system
+## System setup
 
 ```sh
 sudo rootfs-expand; \
@@ -198,6 +198,104 @@ sudo journalctl -fu ddclient.service
 
 ## Software setup
 
+### Apache httpd server
+
+Install apache, mod_ssl and certbot for SSL certificate.
+
+```sh
+sudo dnf install -y httpd mod_ssl certbot python3-certbot-apache
+```
+
+Create a virtual host entry for the domain that will be hosted on the server using the below content:
+
+```domain.conf
+<VirtualHost *:80>
+  ServerName xxx.xxx.xxx
+  DocumentRoot /var/www/html
+  ServerAlias xxx.xxx.xxx
+  ErrorLog /var/www/error.log
+  CustomLog /var/www/requests.log combined
+</VirtualHost>
+```
+
+After the service is running, change the default index.html file. After the welcome page has been modified,  modify the firewall rules to accept requests on httpd ports (80, 443).
+
+```sh
+sudo systemctl enable httpd
+sudo systemctl start httpd
+sudo echo "<html><head><title>It's alive...</title></head><body>It's alive...</body></html>" > /var/www/html/index.html
+sudo firewall-cmd --add-service=http --permanent
+sudo firewall-cmd --add-port=80/tcp --permanent
+sudo firewall-cmd --add-port=443/tcp --permanent
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-all
+```
+
+#### Certbot setup
+
+```sh
+sudo certbot -v --apache -d xxx.xxx.xxx
+```
+
+Create a certbot renewal timer based on documentation found [https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html](https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html).
+
+Create the file ``/etc/systemd/system/certbot-renewal.service`` with the content below:
+
+```certbot-renewal.service
+[Unit]
+Description=Certbot Renewal
+
+[Service]
+ExecStart=/usr/bin/certbot renew --post-hook "systemctl restart httpd"
+```
+
+The above service executes the certbot renew command and restarts the httpd service after the renewal process has completed.
+
+Timer unit files contain information about a timer controlled and supervised by systemd. By default, a service with the same name as the timer is activated.
+
+Create a timer unit file ``/etc/systemd/system/certbot-renewal.timer`` in the same directory as the service file. The configuration below will activate the service weekly, and 300 seconds after boot-up.
+
+```certbot-renewal.timer
+[Unit]
+Description=Timer for Certbot Renewal
+
+[Timer]
+OnBootSec=300
+OnUnitActiveSec=1w
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Start and enable the timer:
+
+```sh
+sudo systemctl start certbot-renewal.timer
+sudo systemctl enable certbot-renewal.timer
+```
+
+To view the status information for the timer:
+
+```sh
+systemctl status certbot-renewal.timer
+```
+
+To view the journal entries for the timer
+
+```sh
+journalctl -u certbot-renewal.service
+```
+
+#### Configure fail2ban
+
+Change fail2ban configuration to allow for checking httpd logs
+
+```sh
+sudo vim /etc/fail2ban/jail.local
+```
+
+Look for expression ``^[httpd`` and add the line ``enabled = true`` to the sections found. After all the changes are made, reload the fail2ban service.
+
 ### Setup Wireguard Server using podman
 
 Some of the details to setup wireguard were copied from [https://www.procustodibus.com/blog/2022/10/wireguard-in-podman/](https://www.procustodibus.com/blog/2022/10/wireguard-in-podman/). However the [linuxserver.io](https://github.com/linuxserver/docker-wireguard) wireguard container is being used.
@@ -273,103 +371,6 @@ To verify that the container started without any issues and to confirm after con
 ```sh
 podman logs -f wg-server
 ```
-
-### Apache httpd server
-
-Install apache, mod_ssl and certbot for SSL certificate.
-
-```sh
-sudo dnf install -y httpd mod_ssl certbot python3-certbot-apache
-```
-
-Create a virtual host entry for the domain that will be hosted on the server using the below content:
-
-```domain.conf
-<VirtualHost *:80>
-  ServerName xxx.xxx.xxx
-  DocumentRoot /var/www/html
-  ServerAlias xxx.xxx.xxx
-  ErrorLog /var/www/error.log
-  CustomLog /var/www/requests.log combined
-</VirtualHost>
-```
-
-After the service is running, change the default index.html file. After the welcome page has been modified,  modify the firewall rules to accept requests on httpd ports (80, 443).
-
-```sh
-sudo systemctl enable httpd
-sudo systemctl start httpd
-sudo echo "<html><head><title>It's alive...</title></head><body>It's alive...</body></html>" > /var/www/html/index.html
-sudo firewall-cmd --add-service=http --permanent
-sudo firewall-cmd --add-port=80/tcp --permanent
-sudo firewall-cmd --add-port=443/tcp --permanent
-sudo firewall-cmd --reload
-sudo firewall-cmd --list-all
-```
-
-Configure certbot:
-
-```sh
-sudo certbot -v --apache -d xxx.xxx.xxx
-```
-
-Create a certbot renewal timer based on documentation found [https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html](https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html).
-
-Create the file ``/etc/systemd/system/certbot-renewal.service`` with the content below:
-
-```certbot-renewal.service
-[Unit]
-Description=Certbot Renewal
-
-[Service]
-ExecStart=/usr/bin/certbot renew --post-hook "systemctl restart httpd"
-```
-
-The above service executes the certbot renew command and restarts the httpd service after the renewal process has completed.
-
-Timer unit files contain information about a timer controlled and supervised by systemd. By default, a service with the same name as the timer is activated.
-
-Create a timer unit file ``/etc/systemd/system/certbot-renewal.timer`` in the same directory as the service file. The configuration below will activate the service weekly, and 300 seconds after boot-up.
-
-```certbot-renewal.timer
-[Unit]
-Description=Timer for Certbot Renewal
-
-[Timer]
-OnBootSec=300
-OnUnitActiveSec=1w
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Start and enable the timer:
-
-```sh
-sudo systemctl start certbot-renewal.timer
-sudo systemctl enable certbot-renewal.timer
-```
-
-To view the status information for the timer:
-
-```sh
-systemctl status certbot-renewal.timer
-```
-
-To view the journal entries for the timer
-
-```sh
-journalctl -u certbot-renewal.service
-```
-
-Change fail2ban configuration to allow for checking httpd logs
-
-```sh
-sudo vim /etc/fail2ban/jail.local
-```
-
-Look for expression ``^[httpd`` and add the line ``enabled = true`` to the sections found. After all the changes are made, reload the fail2ban service.
-
 
 ### Setup TimeMachine backup
 
@@ -449,8 +450,7 @@ Homebridge can be setup to use podman using the following steps.
 ```sh
 #!/bin/sh
 
-docker run \
-  -d \
+docker run -d -rm \
   --net=host \
   --name=homebridge \
   -v /mounts/sda1/containers/volumes/homebridge:/homebridge \
@@ -459,24 +459,26 @@ docker run \
 
 2. Update the firewall rules to allow connections to the homebridge container from an external system.
 
-```sh
-sudo firewall-cmd --add-port=8581/tcp --permanent && \
-sudo firewall-cmd --add-port=51022/tcp --permanent && \
-sudo firewall-cmd --reload && \
-sudo firewall-cmd --list-all
-```
-
-*Note*: Both the http port to manage homebridge and the port that HomeKit needs to communicate with homebridge need to be added to the firewall rules. The HomeKit communication port might be different to the one mentioned above, check the logs as the application is starting up for the port.
+*Note*: Both the http port to manage homebridge and the port that HomeKit needs to be connectable with homebridge need to be added to the firewall rules. The HomeKit communication port can change, so check the logs as the application is starting up for the port.
 
 ```logs
 Homebridge v1.6.1 (HAP v0.11.1) (Homebridge XXXX) is running on port XXXXX.
+```
+
+Use the below to add the ports to the firewall.
+
+```sh
+sudo firewall-cmd --add-port=8581/tcp --permanent && \
+sudo firewall-cmd --add-port=XXXXX/tcp --permanent && \
+sudo firewall-cmd --reload && \
+sudo firewall-cmd --list-all
 ```
 
 3. Connect to the homebridge UI and setup the admin account.
 
 #### Homebridge: Simplisafe setup
 
-Connect to the homebridge UI via a browser (It might be best to use FireFox and/or Chrome), or if using Safari make sure that the Developer Console is enabled and http logs are being retained. Use the plugin [homebridge-simplisafe 3](https://github.com/homebridge-simplisafe3/homebridge-simplisafe3)
+Connect to the homebridge UI via a browser (It might be best to use FireFox and/or Chrome), or if using Safari make sure that the Developer Console is enabled and http logs are being retained. Use the plugin [homebridge-simplisafe 3](https://github.com/homebridge-simplisafe3/homebridge-simplisafe3). You should find the redirect url in the location attribute in the http headers available via the developer console.
 
 ### WiFi hotspot for VPN connection
 
