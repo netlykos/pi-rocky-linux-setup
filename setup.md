@@ -13,14 +13,17 @@
     - [Change selinux](#change-selinux)
     - [Podman setup](#podman-setup)
     - [Host registration with ddclient](#host-registration-with-ddclient)
+    - [Systemd for local user](#systemd-for-local-user)
   - [Software setup](#software-setup)
     - [Apache httpd server](#apache-httpd-server)
       - [Certbot setup](#certbot-setup)
       - [Configure fail2ban](#configure-fail2ban)
     - [Setup Wireguard Server using podman](#setup-wireguard-server-using-podman)
+      - [Configure systemd to restart wg-server](#configure-systemd-to-restart-wg-server)
     - [Setup TimeMachine backup](#setup-timemachine-backup)
     - [Homebridge setup](#homebridge-setup)
       - [Homebridge: Simplisafe setup](#homebridge-simplisafe-setup)
+      - [Systemd for Homebridge](#systemd-for-homebridge)
     - [WiFi hotspot for VPN connection](#wifi-hotspot-for-vpn-connection)
     - [Scrypted setup](#scrypted-setup)
   - [Acknowledgements](#acknowledgements)
@@ -194,6 +197,14 @@ sudo systemctl enable ddclient
 sudo systemctl start ddclient
 sudo systemctl status ddclient
 sudo journalctl -fu ddclient.service 
+```
+
+### Systemd for local user
+
+Create the directory to store user specific systemd files (for use with podman).
+
+```sh
+mkdir -p ${HOME}/.config/systemd/user
 ```
 
 ## Software setup
@@ -372,6 +383,49 @@ To verify that the container started without any issues and to confirm after con
 podman logs -f wg-server
 ```
 
+#### Configure systemd to restart wg-server
+
+Create a systemd entry for the current user to start the wireguard service on system reboot. Create the directory ``${HOME}/.config/systemd/user`` if it doesn't already exist. Create a systemd entry for wg-server with the below content. _NOTE: change the ExecStart as necessary._
+
+```~/.config/systemd/user/wg-server.service
+[Unit]
+Description=Podman wg-server.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target systemd-networkd-wait-online.service
+After=network-online.target systemd-networkd-wait-online.service
+RequiresMountsFor=
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-abort
+StartLimitInterval=60
+StartLimitBurst=100
+TimeoutStopSec=70
+TimeoutSec=900
+ExecStartPre=/bin/sh -c '(while !ping -c1 -w1 1.1.1.1 2>/dev/null; do echo "waiting for ip 1.1.1.1..."; sleep 2; done); sleep 2; echo "up up online!"'
+ExecStart=/home/netlykos/code/containers/wireguard/launch.sh
+ExecStop=/usr/bin/podman stop wg-server
+ExecStopPost=/usr/bin/podman rm -f wg-server
+Type=forking
+
+[Install]
+WantedBy=default.target
+```
+
+Reload the systemd daemon after saving the above file.
+
+```sh
+systemctl --user daemon-reload
+```
+
+Enable the service. _NOTE: if the service is currently running, you need to stop it using ``podman stop wg-server``._
+
+```sh
+systemctl --user enable wg-server.service
+```
+
+Verify the service started as expected using either ``podman ps -a`` or ``systemctl --user status wg-server.service``.
+
 ### Setup TimeMachine backup
 
 Install samba
@@ -479,6 +533,28 @@ sudo firewall-cmd --list-all
 #### Homebridge: Simplisafe setup
 
 Connect to the homebridge UI via a browser (It might be best to use FireFox and/or Chrome), or if using Safari make sure that the Developer Console is enabled and http logs are being retained. Use the plugin [homebridge-simplisafe 3](https://github.com/homebridge-simplisafe3/homebridge-simplisafe3). You should find the redirect url in the location attribute in the http headers available via the developer console.
+
+#### Systemd for Homebridge
+
+Create the user systemd directory. ``mkdir -p ${HOME}/.config/systemd/user`` if it doesn't already exist. After which use the ``podman generate systemd`` command to create the unit file.
+
+```sh
+podman generate systemd -t 5 "homebridge" > ${HOME}/.config/systemd/user/homebridge.service
+```
+
+Reload the systemd daemon.
+
+```sh
+systemctl --user daemon-reload
+```
+
+Enable the new service.
+
+```sh
+systemctl --user enable "$CONTAINER_NAME".service
+````
+
+Verify the service is working using ``podman ps -a``or ``systemctl --user status homebridge.service``.
 
 ### WiFi hotspot for VPN connection
 
