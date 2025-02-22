@@ -4,11 +4,11 @@
 
 - [Raspberry PI RockyLinux 9 Setup](#raspberry-pi-rockylinux-9-setup)
   - [System setup](#system-setup)
+    - [Fresh install initialization](#fresh-install-initialization)
     - [Setup user](#setup-user)
     - [Copy ssh keys](#copy-ssh-keys)
     - [Disable ssh password login](#disable-ssh-password-login)
     - [Setup sudo for user](#setup-sudo-for-user)
-    - [Set hostname](#set-hostname)
     - [Setup fail2ban](#setup-fail2ban)
     - [Change selinux](#change-selinux)
     - [Podman setup](#podman-setup)
@@ -32,6 +32,10 @@
 
 ## System setup
 
+The below commands should be run to setup the system.
+
+### Fresh install initialization
+
 ```sh
 sudo rootfs-expand; \
 sudo dnf update -y && \
@@ -39,13 +43,14 @@ sudo dnf install -y epel-release && \
 sudo /usr/bin/crb enable && \
 sudo dnf install -y fortune-mod mlocate net-tools bind-utils \
   traceroute rsync podman podman-compose podman-docker xauth \
-  gvim rsync bzip2 bunzip2 netcat p7zip
+  gvim rsync bzip2 bzip2 netcat p7zip &&
+sudo hostnamectl set-hostname xxx.netlykos.org
 ```
 
 ### Setup user
 
 ```sh
-sudo useradd -u 10000 -g 100 -G wheel -c "Adi B q=)" -s /bin/bash netlykos
+sudo useradd -u 10000 -g 100 -G wheel -c "Adi B q=)" -s /bin/bash netlykos && \
 sudo passwd netlykos
 sudo su - netlykos
 sudo userdel -f -r rocky
@@ -69,12 +74,6 @@ Look for the string ``PasswordAuthentication`` and set the value to ``no``.
 
 ```sh
 sudo visudo
-```
-
-### Set hostname
-
-```sh
-sudo hostnamectl set-hostname xxx.xxx.xxx
 ```
 
 ### Setup fail2ban
