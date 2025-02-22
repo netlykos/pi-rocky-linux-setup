@@ -142,7 +142,7 @@ sudo loginctl enable-linger $(id -un)
 Use the below to setup ddclient as systemd service to manage host registration with [http://pairdomains.com](http://pairdomains.com). Install and configure ddclient on the local machine:
 
 ```sh
-sudo dnf install -y ddclient
+sudo dnf install -y ddclient && \
 sudo vim /etc/ddclient.conf /usr/lib/systemd/system/ddclient.service
 ```
 
@@ -191,10 +191,10 @@ WantedBy=multi-user.target
 Enable and start the ddclient service
 
 ```sh
-sudo systemctl daemon-reload
-sudo systemctl enable ddclient
-sudo systemctl start ddclient
-sudo systemctl status ddclient
+sudo systemctl daemon-reload && \
+sudo systemctl enable ddclient && \
+sudo systemctl start ddclient && \
+sudo systemctl status ddclient && \
 sudo journalctl -fu ddclient.service 
 ```
 
@@ -228,16 +228,21 @@ Create a virtual host entry for the domain that will be hosted on the server usi
 </VirtualHost>
 ```
 
+Create a index.html page for the server
+
+```sh
+echo "<html><head><title>It's alive...</title></head><body>It's alive...</body></html>" | sudo tee /var/www/html/index.html
+```
+
 After the service is running, change the default index.html file. After the welcome page has been modified,  modify the firewall rules to accept requests on httpd ports (80, 443).
 
 ```sh
-sudo systemctl enable httpd
-sudo systemctl start httpd
-sudo echo "<html><head><title>It's alive...</title></head><body>It's alive...</body></html>" > /var/www/html/index.html
-sudo firewall-cmd --add-service=http --permanent
-sudo firewall-cmd --add-port=80/tcp --permanent
-sudo firewall-cmd --add-port=443/tcp --permanent
-sudo firewall-cmd --reload
+sudo systemctl enable httpd && \
+sudo systemctl start httpd && \
+sudo firewall-cmd --add-service=http --permanent && \
+sudo firewall-cmd --add-port=80/tcp --permanent && \
+sudo firewall-cmd --add-port=443/tcp --permanent && \
+sudo firewall-cmd --reload && \
 sudo firewall-cmd --list-all
 ```
 
