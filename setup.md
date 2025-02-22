@@ -372,7 +372,7 @@ podman run -d \
     --sysctl net.ipv4.conf.all.forwarding=1 \
     --sysctl net.ipv4.conf.all.src_valid_mark=1 \
     -e TZ=Etc/UTC \
-    -e SERVERURL=routecvt02.netlykos.org \
+    -e SERVERURL=xxx.xxx.xxx \
     -e SERVERPORT=51820 \
     -e PEERS=10 \
     -e PEERDNS=1.0.0.1,8.8.8.8 \
