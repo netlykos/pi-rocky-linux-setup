@@ -41,9 +41,8 @@ sudo rootfs-expand; \
 sudo dnf update -y && \
 sudo dnf install -y epel-release && \
 sudo /usr/bin/crb enable && \
-sudo dnf install -y fortune-mod mlocate net-tools bind-utils \
-  traceroute rsync podman podman-compose podman-docker xauth \
-  gvim rsync bzip2 bzip2 netcat p7zip && \
+sudo dnf install -y fortune-mod plocate net-tools bind-utils traceroute rsync podman podman-compose podman-docker xauth gvim rsync bzip2 bzip2 netcat p7zip && \
+sudo systemctl daemon-reload && \
 sudo hostnamectl set-hostname xxx.xxx.xxx
 ```
 
