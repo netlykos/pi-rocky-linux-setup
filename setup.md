@@ -247,60 +247,25 @@ sudo firewall-cmd --list-all
 
 #### Certbot setup
 
-```sh
-sudo certbot -v --apache -d xxx.xxx.xxx
-```
-
-Create a certbot renewal timer based on documentation found [https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html](https://stevenwestmoreland.com/2017/11/renewing-certbot-certificates-using-a-systemd-timer.html).
-
-Create the file ``/etc/systemd/system/certbot-renewal.service`` with the content below:
-
-```certbot-renewal.service
-[Unit]
-Description=Certbot Renewal
-
-[Service]
-ExecStart=/usr/bin/certbot renew --post-hook "systemctl restart httpd"
-```
-
-The above service executes the certbot renew command and restarts the httpd service after the renewal process has completed.
-
-Timer unit files contain information about a timer controlled and supervised by systemd. By default, a service with the same name as the timer is activated.
-
-Create a timer unit file ``/etc/systemd/system/certbot-renewal.timer`` in the same directory as the service file. The configuration below will activate the service weekly, and 300 seconds after boot-up.
-
-```certbot-renewal.timer
-[Unit]
-Description=Timer for Certbot Renewal
-
-[Timer]
-OnBootSec=300
-OnUnitActiveSec=1w
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Start and enable the timer:
+Setup certbot for apache httpd
 
 ```sh
-sudo systemctl start certbot-renewal.timer
-sudo systemctl enable certbot-renewal.timer
+sudo certbot -v --apache -d $(hostname --long)
 ```
 
-To view the status information for the timer:
+Enable the systemctl timer for certbot renewal
 
 ```sh
-systemctl status certbot-renewal.timer
+sudo systemctl enable certbot-renew.timer
 ```
 
-To view the journal entries for the timer
+Check the systemctl timer for certbot
 
 ```sh
-journalctl -u certbot-renewal.service
+sudo systemctl status certbot-renew.timer
 ```
 
-#### Configure fail2ban
+#### Update Configuration for fail2ban
 
 Change fail2ban configuration to allow for checking httpd logs
 
