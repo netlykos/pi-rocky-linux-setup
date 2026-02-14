@@ -370,7 +370,7 @@ podman run -d \
     -e PEERS=10 \
     -e PEERDNS=1.0.0.1,8.8.8.8 \
     -e LOG_CONFS=true \
-    --volume /home/netlykos/code/containers/wireguard/volume/config:/config:Z \
+    --volume ${HOME}/containers/wireguard/volume/config:/config:Z \
     lscr.io/linuxserver/wireguard:latest
 ```
 
