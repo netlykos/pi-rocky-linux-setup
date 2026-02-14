@@ -14,10 +14,11 @@
     - [Podman setup](#podman-setup)
     - [Host registration with ddclient](#host-registration-with-ddclient)
     - [Systemd for local user](#systemd-for-local-user)
+    - [Mount USB device](#mount-usb-device)
   - [Software setup](#software-setup)
     - [Apache httpd server](#apache-httpd-server)
       - [Certbot setup](#certbot-setup)
-      - [Configure fail2ban](#configure-fail2ban)
+      - [Update Configuration for fail2ban](#update-configuration-for-fail2ban)
     - [Setup Wireguard Server using podman](#setup-wireguard-server-using-podman)
       - [Configure systemd to restart wg-server](#configure-systemd-to-restart-wg-server)
     - [Setup TimeMachine backup](#setup-timemachine-backup)
@@ -203,6 +204,34 @@ Create the directory to store user specific systemd files (for use with podman).
 
 ```sh
 mkdir -p ${HOME}/.config/systemd/user
+```
+
+### Mount USB device
+
+Use lsblk to identify the device, the file system type and UUID. The UUID is used when creating a mount entry in the file ``/etc/fstab``.
+
+```sh
+ sudo lsblk -o NAME,MAJ:MIN,TYPE,SIZE,LABEL,FSTYPE,MOUNTPOINT,PARTUUID,UUID
+ ```
+
+Once you've identified the device to be mounted, create the mount point for the device and mount the file system. If necessary, install the file system drivers, e.g. ntfs-3g for reading and writing to a ntfs file system.  Verify that the mounted file system works as expected, then un-mount the device. Edit the file ``/etc/fstab``adding the necessary entry using the UUID or PARTUUID entry from the ``lsblk`` command in the file instead of the ``/dev/``mount point.
+
+ ```sh
+sudo mkdir -p /mnt/usb1
+sudo dnf install -y ntfs-3g
+sudo mount -t ntfs-3g /dev/sda2 /mnt/usb1
+sudo umount /mnt/usb1
+sudo vim /etc/fstab
+```
+
+```/etc/fstab
+PARTUUID="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" /mnt/usb1 ntfs-3g defaults                            0 0
+```
+
+After adding the entry to the file ``/etc/fstab``, You can mount the file system using the fstab entry.
+
+```sh
+sudo mount -a
 ```
 
 ## Software setup
